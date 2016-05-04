@@ -5,6 +5,8 @@ MAINTAINER Jay Luker <jay_luker@harvard.edu>
 ENV POSTGRES_VERSION 9.3
 ENV RAILS_ENV development
 
+RUN apt-get -y update
+
 # enable https repos and add in nodesource repo
 RUN apt-get -y install apt-transport-https
 COPY assets/nodesource.list /etc/apt/sources.list.d/nodesource.list
