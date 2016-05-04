@@ -29,9 +29,7 @@ RUN apt-get install -y \
     libpq5 libsqlite3-dev \
     postgresql-$POSTGRES_VERSION \
     postgresql-client-$POSTGRES_VERSION \
-    postgresql-contrib-$POSTGRES_VERSION \
-    && apt-get clean \
-    && rm -Rf /var/cache/apt
+    postgresql-contrib-$POSTGRES_VERSION
 
 RUN gem install bundler --version 1.10.3
 
@@ -69,12 +67,42 @@ RUN chmod 755 /dbconf.sh /dbinit.sh
 
 RUN /dbconf.sh && service postgresql start && /dbinit.sh
 
+
+# add apache
+RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 561F9B9CAC40B2F7
+RUN apt-get install -y apt-transport-https ca-certificates
+
+# Add our APT repository
+RUN sh -c 'echo deb https://oss-binaries.phusionpassenger.com/apt/passenger trusty main > /etc/apt/sources.list.d/passenger.list'
+RUN apt-get update
+
+# Install Passenger + Apache module
+RUN apt-get install -y passenger libapache2-mod-passenger apache2
+RUN apt-get update
+
+RUN apt-get clean \
+    && rm -Rf /var/cache/apt
+
+RUN  cd /opt/canvas-lms \
+    && mkdir -p log tmp/pids public/assets public/stylesheets/compiled \
+    && touch Gemfile.lock \
+    && chown -R www-data config/environment.rb log tmp public Gemfile.lock config.ru /var/www/
+
+RUN a2enmod rewrite
+RUN a2enmod passenger
+RUN a2enmod ssl
+
+COPY assets/passenger.conf /etc/apache2/mods-available/
+COPY assets/000-default.conf /etc/apache2/sites-enabled/000-default.conf
+
 # postgres
 EXPOSE 5432
 # redis
 EXPOSE 6379
 # canvas
 EXPOSE 3000
+
+EXPOSE 443
 
 COPY assets/start.sh /start.sh
 
